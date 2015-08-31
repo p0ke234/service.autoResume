@@ -24,6 +24,10 @@ ADDON_ID = ADDON.getAddonInfo('id')
 FOLDER = ADDON.getSetting('autoresume.save.folder').encode('utf-8', 'ignore')
 FREQUENCY = int(ADDON.getSetting('autoresume.frequency'))
 PATH = os.path.join(FOLDER, 'autoresume.txt')
+PLFOLDER = ADDON.getSetting('playlist.folder').encode('utf-8', 'ignore')
+PLNAME = str(ADDON.getSetting('playlist.name'))
+PL = os.path.join(PLFOLDER, PLNAME)
+
 
 def resume():
   for x in range(0,120):
@@ -31,11 +35,14 @@ def resume():
       if os.path.exists(PATH):
         # Read from autoresume.txt.
         f = open(PATH, 'r')
+        plist = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
+        plist.load(PL)
         mediaFile = f.readline().rstrip('\n')
         position = float(f.readline())
+        item = int(f.readline())
         f.close()
         # Play file.
-        xbmc.Player().play(mediaFile)
+        xbmc.Player().play(plist, startpos=item)
         while (not xbmc.Player().isPlaying()):
           sleep(0.5)
         sleep(1)
@@ -45,6 +52,8 @@ def resume():
         # Make sure it actually got there.
         if abs(position - xbmc.Player().getTime()) > 30:
           xbmc.Player().seekTime(position)
+      else:
+        xbmc.Player().play(PL)
       break
     else:
       # If the folder didn't exist maybe we need to wait longer for the drive to be mounted.
@@ -54,15 +63,17 @@ def recordPosition():
   if xbmc.Player().isPlaying():
     mediaFile = xbmc.Player().getPlayingFile()
     position = xbmc.Player().getTime()
+    plist = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
+    item = plist.getposition()
     # Write info to file
     f = open(PATH, 'w')
     f.write(mediaFile)
     f.write('\n')
     f.write(repr(position))
+    f.write('\n')
+    f.write(str(item))
     f.close()
-  else:
-    if os.path.exists(PATH):
-      os.remove(PATH)
+
 
 def log(msg):
   xbmc.log("%s: %s" % (ADDON_ID, msg), xbmc.LOGDEBUG)
